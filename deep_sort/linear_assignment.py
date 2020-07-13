@@ -51,12 +51,33 @@ def min_cost_matching(
 
     if len(detection_indices) == 0 or len(track_indices) == 0:
         return [], track_indices, detection_indices  # Nothing to match.
-
+    # -----------------------------------------
+    # Gated_distance——>
+    #       1. cosine distance
+    #       2. 马氏距离
+    # 得到代价矩阵
+    # -----------------------------------------
+    # iou_cost——>
+    #       仅仅计算track和detection之间的iou距离
+    # -----------------------------------------
     cost_matrix = distance_metric(
         tracks, detections, track_indices, detection_indices)
+
+    # -----------------------------------------
+    # gated_distance中设置距离中最高上限，
+    # 这里最远距离实际是在deep sort类中的max_dist参数设置的
+    # 默认max_dist=0.2， 距离越小越好
+    # -----------------------------------------
+    # iou_cost情况下，max_distance的设置对应tracker中的max_iou_distance,
+    # 默认值为max_iou_distance=0.7
+    # 注意结果是1-iou，所以越小越好
+    # -----------------------------------------
     cost_matrix[cost_matrix > max_distance] = max_distance + 1e-5
+
+    # 匈牙利算法或者KM算法
     indices = linear_assignment(cost_matrix)
 
+    # 这几个for循环用于对匹配结果进行筛选，得到匹配和未匹配的结果
     matches, unmatched_tracks, unmatched_detections = [], [], []
     for col, detection_idx in enumerate(detection_indices):
         if col not in indices[:, 1]:

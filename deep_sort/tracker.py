@@ -56,6 +56,7 @@ class Tracker:
         self._next_id = 1 # 下一个分配的轨迹id
 
     # 遍历每个track都进行一次预测
+    #predict主要是对轨迹列表中所有的轨迹使用卡尔曼滤波算法进行状态的预测
     def predict(self):
         """Propagate track state distributions one time step forward.
 
@@ -113,6 +114,7 @@ class Tracker:
             np.asarray(features), np.asarray(targets), active_targets)
 
     # 主要功能是进行匹配，找到匹配的，未匹配的部分
+    # 是update函数的核心
     def _match(self, detections):
 
         # 功能： 用于计算track和detection之间的距离，代价函数

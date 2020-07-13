@@ -95,6 +95,7 @@ def gather_sequence_info(sequence_dir, detection_file):
 
 def create_detections(detection_mat, frame_idx, min_height=0):
     """Create detections for given frame index from the raw detection matrix.
+    根据原始检测框为给定的帧索引创建检测
 
     Parameters
     ----------
@@ -102,16 +103,21 @@ def create_detections(detection_mat, frame_idx, min_height=0):
         Matrix of detections. The first 10 columns of the detection matrix are
         in the standard MOTChallenge detection format. In the remaining columns
         store the feature vector associated with each detection.
+        检测矩阵: 检测矩阵的前10列采用标准MOTChallenge检测格式。在其余列中，存储与每个检测
+        相关的特征向量。
     frame_idx : int
         The frame index.
+        帧的序号
     min_height : Optional[int]
         A minimum detection bounding box height. Detections that are smaller
         than this value are disregarded.
+        最小检测框的高度。小于此值的检测将会被忽略
 
     Returns
     -------
     List[tracker.Detection]
         Returns detection responses at given frame index.
+        返回给定帧索引处的检测响应(处理结果)
 
     """
     frame_indices = detection_mat[:, 0].astype(np.int)
@@ -120,6 +126,7 @@ def create_detections(detection_mat, frame_idx, min_height=0):
     detection_list = []
     for row in detection_mat[mask]:
         bbox, confidence, feature = row[2:6], row[6], row[10:]
+        # 如果小于min_height忽略检测
         if bbox[3] < min_height:
             continue
         detection_list.append(Detection(bbox, confidence, feature))
@@ -179,6 +186,10 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
         print("Processing frame %05d" % frame_idx)
 
         # Load image and generate detections.
+        # 筛选小于min_confidence的目标，并构造一个Detection对象构成的列表
+        # Detection是一个存储图中一个bbox结果
+        # 需要：1. bbox(tlwh形式) 2. 对应置信度 3. 对应embedding
+
         detections = create_detections(
             seq_info["detections"], frame_idx, min_detection_height)
         detections = [d for d in detections if d.confidence >= min_confidence]
@@ -186,15 +197,20 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
         # Run non-maxima suppression.
         boxes = np.array([d.tlwh for d in detections])
         scores = np.array([d.confidence for d in detections])
+        # 使用非极大抑制
+        # 默认nms_thres=1的时候开启也没有用，实际上并没有进行非极大抑制
         indices = preprocessing.non_max_suppression(
             boxes, nms_max_overlap, scores)
         detections = [detections[i] for i in indices]
 
         # Update tracker.
+        # tracker给出一个预测结果，然后将detection传入，进行卡尔曼滤波操作
         tracker.predict()
         tracker.update(detections)
 
-        # Update visualization，如果选择了跟踪结果可视化，图片框中展示的图片
+        # Update visualization，
+        # 进行可是化操作，如果选择了跟踪结果可视化，图片框中展示的图片
+
         if display:
             image = cv2.imread(
                 seq_info["image_filenames"][frame_idx], cv2.IMREAD_COLOR)
