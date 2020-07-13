@@ -1,9 +1,9 @@
 # vim: expandtab:ts=4:sw=4
 import numpy as np
 
-
+#计算欧氏距离
 def _pdist(a, b):
-    """Compute pair-wise squared distance between points in `a` and `b`.
+    """c.
 
     Parameters
     ----------
@@ -27,7 +27,7 @@ def _pdist(a, b):
     r2 = np.clip(r2, 0., float(np.inf))
     return r2
 
-
+# 计算余弦距离
 def _cosine_distance(a, b, data_is_normalized=False):
     """Compute pair-wise cosine distance between points in `a` and `b`.
 
@@ -96,6 +96,7 @@ def _nn_cosine_distance(x, y):
     return distances.min(axis=0)
 
 
+# 对于每个目标，返回一个最近的距离
 class NearestNeighborDistanceMetric(object):
     """
     A nearest neighbor distance metric that, for each target, returns
@@ -108,9 +109,11 @@ class NearestNeighborDistanceMetric(object):
     matching_threshold: float
         The matching threshold. Samples with larger distance are considered an
         invalid match.
+        匹配阈值，距离较大的样本被视为无效匹配
     budget : Optional[int]
         If not None, fix samples per class to at most this number. Removes
         the oldest samples when the budget is reached.
+        每个类别样本最多的保有数量(feature的保有数量)，如果多与该值，旧的样本将会被删除
 
     Attributes
     ----------
@@ -124,16 +127,21 @@ class NearestNeighborDistanceMetric(object):
 
 
         if metric == "euclidean":
+            # 使用最近邻欧氏距离
             self._metric = _nn_euclidean_distance
         elif metric == "cosine":
+            #使用近邻余弦距离
             self._metric = _nn_cosine_distance
         else:
             raise ValueError(
                 "Invalid metric; must be either 'euclidean' or 'cosine'")
         self.matching_threshold = matching_threshold
+        # 在级联匹配的函数中调用
         self.budget = budget
         self.samples = {}
 
+    # 作用：部分拟合，用新的数据更新测量距离
+    # 调用：在特征集更新模块部分调用，tracker.update()中
     def partial_fit(self, features, targets, active_targets):
         """Update the distance metric with new data.
 
@@ -148,11 +156,18 @@ class NearestNeighborDistanceMetric(object):
 
         """
         for feature, target in zip(features, targets):
+            # 对应目标下添加新的feature，更新feature集合
+            # 目标id  :  feature list
             self.samples.setdefault(target, []).append(feature)
+            # 设置预算，每个类最多多少个目标，超过直接忽略
             if self.budget is not None:
                 self.samples[target] = self.samples[target][-self.budget:]
         self.samples = {k: self.samples[k] for k in active_targets}
 
+    # 作用：比较feature和targets之间的距离，返回一个代价矩阵
+    # 调用：在匹配阶段，将distance封装为gated_metric,
+    #       进行外观信息(reid得到的深度特征)+
+    #       运动信息(马氏距离用于度量两个分布相似程度)
     def distance(self, features, targets):
         """Compute distance between features and targets.
 

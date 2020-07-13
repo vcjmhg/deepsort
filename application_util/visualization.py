@@ -52,7 +52,7 @@ def create_unique_color_uchar(tag, hue_step=0.41):
     r, g, b = create_unique_color_float(tag, hue_step)
     return int(255*r), int(255*g), int(255*b)
 
-
+#一个虚拟可视化对象，它以给定的顺序循环遍历所有帧以更新跟踪器，而无需执行任何可视化。
 class NoVisualization(object):
     """
     A dummy visualization object that loops through all frames in a given
@@ -99,6 +99,7 @@ class Visualization(object):
     def run(self, frame_callback):
         self.viewer.run(lambda: self._update_fun(frame_callback))
 
+    # 执行frmae_callback函数
     def _update_fun(self, frame_callback):
         if self.frame_idx > self.last_idx:
             return False  # Terminate

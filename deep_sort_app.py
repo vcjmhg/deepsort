@@ -13,7 +13,7 @@ from deep_sort import nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 
-
+# 收集流信息，包括图片名称，检测结果以及置信度等
 def gather_sequence_info(sequence_dir, detection_file):
     """Gather sequence information, such as image filenames, detections,
     groundtruth (if available).
@@ -135,34 +135,46 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
     ----------
     sequence_dir : str
         Path to the MOTChallenge sequence directory.
+        MOT
+        MOTChanllenge 序列文件所在的目录
     detection_file : str
         Path to the detections file.
+        检测的文件目录
     output_file : str
         Path to the tracking output file. This file will contain the tracking
         results on completion.
+        追踪结果输出的文件目录
     min_confidence : float
         Detection confidence threshold. Disregard all detections that have
         a confidence lower than this value.
+        最小置信度阈值
     nms_max_overlap: float
         Maximum detection overlap (non-maxima suppression threshold).
     min_detection_height : int
         Detection height threshold. Disregard all detections that have
         a height lower than this value.
+        最小检测框高度
     max_cosine_distance : float
         Gating threshold for cosine distance metric (object appearance).
+        余弦距离门控阈值
     nn_budget : Optional[int]
         Maximum size of the appearance descriptor gallery. If None, no budget
         is enforced.
+        外观描述库的最大大小，如果大于该值，后边的外观描述信息会将旧的外观描述信息覆盖掉
     display : bool
         If True, show visualization of intermediate tracking results.
-
+        是否将追踪结果进行可视化的展示
     """
+    # 收集流信息，包括图片名称，检测结果以及置信度等
     seq_info = gather_sequence_info(sequence_dir, detection_file)
+    # metic实例化nn_matching的NearestNeighborDistanceMetric类，输入的初始距离度量函数是cosine,此时可以传入euclidean
     metric = nn_matching.NearestNeighborDistanceMetric(
         "cosine", max_cosine_distance, nn_budget)
+    # 将度量方式对象传入到追踪器对象中，创建一个追踪器对象
     tracker = Tracker(metric)
     results = []
 
+    # 循环帧：frame_idx < last_idx则运行frame_callback，且每次循环frame_idx += 1
     def frame_callback(vis, frame_idx):
         print("Processing frame %05d" % frame_idx)
 
@@ -182,7 +194,7 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
         tracker.predict()
         tracker.update(detections)
 
-        # Update visualization.
+        # Update visualization，如果选择了跟踪结果可视化，图片框中展示的图片
         if display:
             image = cv2.imread(
                 seq_info["image_filenames"][frame_idx], cv2.IMREAD_COLOR)
@@ -199,13 +211,15 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
                 frame_idx, track.track_id, bbox[0], bbox[1], bbox[2], bbox[3]])
 
     # Run tracker.
+    # 根据display选择不同的可视化对象
     if display:
         visualizer = visualization.Visualization(seq_info, update_ms=5)
     else:
         visualizer = visualization.NoVisualization(seq_info)
+    # 调用对应的run方法开始进行追踪。
     visualizer.run(frame_callback)
 
-    # Store results.
+    # 将追踪的结果存储到output_file中
     f = open(output_file, 'w')
     for row in results:
         print('%d,%d,%.2f,%.2f,%.2f,%.2f,1,-1,-1,-1' % (

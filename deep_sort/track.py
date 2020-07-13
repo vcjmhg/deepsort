@@ -15,7 +15,11 @@ class TrackState:
     Confirmed = 2
     Deleted = 3
 
-
+# Track类主要存储的是轨迹信息，mean和covariance是保存的框的位置和速度信息
+# ，track_id代表分配给这个轨迹的ID。state代表框的状态，有三种：
+# Tentative: 不确定态，这种状态会在初始化一个Track的时候分配，并且只有在连续匹配上n_init帧才会转变为确定态。如果在处于不确定态的情况下没有匹配上任何detection，那将转变为删除态。
+# Confirmed: 确定态，代表该Track确实处于匹配状态。如果当前Track属于确定态，但是失配连续达到max age次数的时候，就会被转变为删除态。
+# Deleted: 删除态，说明该Track已经失效。
 class Track:
     """
     A single target track with state space `(x, y, a, h)` and associated
@@ -68,16 +72,31 @@ class Track:
         self.mean = mean
         self.covariance = covariance
         self.track_id = track_id
+        # hits和n_init进行比较
+        # hits每次update的时候进行一次更新（只有match的时候才进行update）
+        # hits代表匹配上了多少次，匹配次数超过n_init就会设置为confirmed状态
         self.hits = 1
+        # 没有用到，和time_since_update功能重复
         self.age = 1
+        # 每次调用predict函数的时候就会+1
+        # 每次调用update函数的时候就会设置为0
         self.time_since_update = 0
 
         self.state = TrackState.Tentative
         self.features = []
+        # 每个track对应多个features, 每次更新都将最新的feature添加到列表中
         if feature is not None:
             self.features.append(feature)
 
+        # 如果连续n_init帧都没有出现失配，设置为deleted状态
         self._n_init = n_init
+        # 上限,max_age代表一个Track存活期限，
+        # 他需要和time_since_update变量进行比对。
+        # time_since_update是每次轨迹调用predict函数的时候就会+1，
+        # 每次调用predict的时候就会重置为0，也就是说如果一个轨迹长时间
+        # 没有update(没有匹配上)的时候，就会不断增加，直到
+        # time_since_update超过max age(默认70)，
+        # 将这个Track从Tracker中的列表删除。
         self._max_age = max_age
 
     def to_tlwh(self):
