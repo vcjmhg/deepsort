@@ -192,15 +192,16 @@ def run(sequence_dir, detection_file, output_file, min_confidence,
 
         detections = create_detections(
             seq_info["detections"], frame_idx, min_detection_height)
+        # 筛选检测框
         detections = [d for d in detections if d.confidence >= min_confidence]
 
         # Run non-maxima suppression.
         boxes = np.array([d.tlwh for d in detections])
         scores = np.array([d.confidence for d in detections])
-        # 使用非极大抑制
-        # 默认nms_thres=1的时候开启也没有用，实际上并没有进行非极大抑制
+        # 使用非极大抑制,找出局部范围内得分最大的框
         indices = preprocessing.non_max_suppression(
             boxes, nms_max_overlap, scores)
+        # 更新检测框列表
         detections = [detections[i] for i in indices]
 
         # Update tracker.

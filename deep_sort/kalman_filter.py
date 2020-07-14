@@ -123,7 +123,7 @@ class KalmanFilter(object):
         return mean, covariance
 
     def project(self, mean, covariance):
-        """Project state distribution to measurement space.
+        """
 
         Parameters
         ----------

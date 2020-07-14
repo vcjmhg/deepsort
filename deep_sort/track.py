@@ -138,6 +138,7 @@ class Track:
             The Kalman filter.
 
         """
+        # 使用卡尔曼滤波
         self.mean, self.covariance = kf.predict(self.mean, self.covariance)
         self.age += 1
         self.time_since_update += 1
