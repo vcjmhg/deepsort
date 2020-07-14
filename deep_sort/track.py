@@ -77,8 +77,8 @@ class Track:
         # hits代表匹配上了多少次，匹配次数超过n_init就会设置为confirmed状态
         self.hits = 1
         # 没有用到，和time_since_update功能重复
-        self.age = 1
         # 每次调用predict函数的时候就会+1
+        self.age = 1
         # 每次调用update函数的时候就会设置为0
         self.time_since_update = 0
 
